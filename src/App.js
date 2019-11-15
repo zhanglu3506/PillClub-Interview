@@ -23,6 +23,7 @@ function generateDummyTest(description){
     },
   };
 }
+
 class App extends React.Component {
 
   constructor(props) {
@@ -31,43 +32,59 @@ class App extends React.Component {
       testResults: test.map((element) => {
         let obj = {};
         obj['testMethod'] = element;
-        obj['result'] = ''
+        obj['result'] = 'Not Started Yet'
         return obj;
-      })
+      }),
+      isFinished: 0,
+      isPassed: 0,
+      isFailed: 0
     }
   }
 
-
-
   handleClickTest = () => {
-    let results = JSON.parse(JSON.stringify(this.state.testResults));
-    let final = results.map((element, index) => {
-      element.result = test[index].run((testPassed) => {
-        let r = results.map( (e, i)=> {
-          if(index === i) {
-            e.result = 'running';
-          }
-          return e;
-        })
-        this.setState({testResults: r});
-        return testPassed ? 'passed': 'failed';
-      });
-      console.log(element.result);
-      return element;
+    test.forEach((e, index) =>{
+      e.run((testPassed) => {
+        _helperSetState(index);
+        _helperSetState(testPassed, index);
+      });   
     });
-    console.log(final);
-    this.setState({testResults: final});
+
+    let _helperSetState = (testPassed, index) => {
+      let display = typeof testPassed === 'boolean' ? (testPassed ? 'passed': 'failed') : 'running';
+
+      let results = JSON.parse(JSON.stringify(this.state.testResults));
+      let r = results.map((e, i) => {
+        if(index === i) {
+          console.log( index + '  '+ display);
+          e.result = display;
+          if(display !== 'running') {
+            let finished = this.state.isFinished;
+            this.setState({isFinished: finished + 1});
+            if(display === 'passed') {
+              let passed = this.state.isPassed;
+              this.setState({isPassed: passed + 1});
+            } else{
+              let failed = this.state.isFailed;
+              this.setState({isFailed: failed + 1});
+            }
+          }
+        }
+        return e;
+      });
+      this.setState({testResults: r});
+    };
   }
 
   renderResult = () => {
     let results = JSON.parse(JSON.stringify(this.state.testResults));
-  
+    // results.sort((a, b)=>{
+    //   if()
+    // });
     return results.map((e ,index)=> {
-
       return(
-        <div key={index}>
-          <div>{e.testMethod.description}</div>
-          <div>{e.result}</div>
+        <div key={index} className="result-table">
+          <div className="result-name">{e.testMethod.description}</div>
+          <div className="result-status">{e.result}</div>
         </div>
       );
     });
@@ -75,14 +92,18 @@ class App extends React.Component {
   
 
   render() {
-    
+    let {isFinished, isFailed, isPassed} = this.state;
+    console.log(isFinished);
     return (
       <div className="App">
         <h1>Pill Club Interview</h1>
         <button className="test-button" onClick={() => this.handleClickTest()}>Start Tests</button>
-        {
-          this.renderResult()
-        }
+        {this.renderResult()}
+        { isPassed === 0 ? null : <span>Is Passed: {isPassed}</span>}
+        <br></br>
+        { isFailed === 0 ? null : <span>Is Failed: {isFailed}</span>}
+        <br></br>     
+        { isFinished === test.length ? <p>FINISHED!</p> : null}
       </div>
     );
   }
